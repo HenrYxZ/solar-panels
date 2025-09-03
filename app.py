@@ -1,59 +1,120 @@
 from pudu_ui import App
-from pudu_ui.utils import fit_screen
 from pyglet.math import Vec2
-from pyglet.graphics import Group
 
-
-from components import Panel, Roof
+from settings_screen import SettingsScreen
+from simulation_screen import SimulationScreen
 
 
 class PanelsApp(App):
-    def __init__(self, roof_x, roof_y, panels: list[tuple[Vec2, Vec2]]):
+    def __init__(self):
         super().__init__(caption="Solar Panels")
-        self.canvas_max_width = int(self.width * 0.8)
-        self.canvas_max_height = int(self.height * 0.75)
+        self.memo = {}
 
-        self.back_group = Group(order=0)
-        self.front_group = Group(order=1)
+        # Start with the settings
+        settings_screen = SettingsScreen()
+        settings_screen.button.on_press = self.simulate
+        self.push_handlers(settings_screen)
 
-        roof, pixel_size = self.create_roof(roof_x, roof_y)
-        self.create_panels(roof, panels, pixel_size)
-        if len(roof.children) > 0:
-            roof.children[0].show_dims()
+        self.set_screen(settings_screen)
 
-    def create_roof(self, x: float, y: float):
-        if x > y:
-            pixel_size = self.canvas_max_width // x
-        else:
-            pixel_size = self.canvas_max_height // y
+    @staticmethod
+    def hash_rect(dims: Vec2) -> str:
+        return f"{int(dims.x)}x{int(dims.y)}"
 
-        roof_width = int(pixel_size * x)
-        roof_height = int(pixel_size * y)
-        roof_width, roof_height = fit_screen(
-            self.canvas_max_width, self.canvas_max_height,
-            roof_width, roof_height
+    def max_panels(
+        self, pos: Vec2, dims: Vec2, panel_dims: Vec2
+    ) -> list[tuple[Vec2, Vec2]]:
+        a, b = panel_dims.x, panel_dims.y
+        if not dims.x or not dims.y:
+            return []
+        # print(pos, dims)
+        h = self.hash_rect(dims)
+        if h in self.memo:
+            answer = []
+            for panel_pos, panel_dims in self.memo[h]:
+                answer.append((pos + panel_pos, panel_dims))
+            return answer
+
+        x = dims.x
+        y = dims.y
+
+        panel_x = a
+        panel_y = b
+
+        # Try with panel_x in row
+        op1 = []
+        op2 = []
+        if x >= panel_x and y >= panel_y:
+            op1.append((pos, Vec2(panel_x, panel_y)))
+            remaining_x = x - panel_x
+            left_pos = pos + Vec2(panel_x, 0)
+            while remaining_x >= panel_x:
+                op1.append((left_pos, Vec2(panel_x, panel_y)))
+                remaining_x -= panel_x
+                left_pos += Vec2(panel_x, 0)
+            new_pos = pos + Vec2(0, panel_y)
+            new_dims = Vec2(x, y - panel_y)
+            op1 += self.max_panels(new_pos, new_dims, panel_dims)
+
+        # Try with panel_x in columns
+        if x >= panel_x and y >= panel_y:
+            op2 = [(pos, Vec2(panel_x, panel_y))]
+            remaining_y = y - panel_y
+            left_pos = pos + Vec2(0, panel_y)
+            while remaining_y >= panel_y:
+                op2.append((left_pos, Vec2(panel_x, panel_y)))
+                remaining_y -= panel_y
+                left_pos += Vec2(0, panel_y)
+            new_pos = pos + Vec2(panel_x, 0)
+            new_dims = Vec2(x - panel_x, y)
+            op2 += self.max_panels(new_pos, new_dims, panel_dims)
+
+        op3 = []
+        op4 = []
+        if a != b:
+            panel_x = b
+            panel_y = a
+            if x >= panel_x and y >= panel_y:
+                op3.append((pos, Vec2(panel_x, panel_y)))
+                remaining_x = x - panel_x
+                left_pos = pos + Vec2(panel_x, 0)
+                while remaining_x >= panel_x:
+                    op3.append((left_pos, Vec2(panel_x, panel_y)))
+                    remaining_x -= panel_x
+                    left_pos += Vec2(panel_x, 0)
+                new_pos = pos + Vec2(0, panel_y)
+                new_dims = Vec2(x, y - panel_y)
+                op3 += self.max_panels(new_pos, new_dims, panel_dims)
+
+            if x >= panel_x and y >= panel_y:
+                op4 = [(pos, Vec2(panel_x, panel_y))]
+                remaining_y = y - panel_y
+                left_pos = pos + Vec2(0, panel_y)
+                while remaining_y >= panel_y:
+                    op4.append((left_pos, Vec2(panel_x, panel_y)))
+                    remaining_y -= panel_y
+                    left_pos += Vec2(0, panel_y)
+                new_pos = pos + Vec2(panel_x, 0)
+                new_dims = Vec2(x - panel_x, y)
+                op4 += self.max_panels(new_pos, new_dims, panel_dims)
+
+        options = [op1, op2, op3, op4]
+        best_option = op1
+        for option in options:
+            if len(option) > len(best_option):
+                best_option = option
+        self.memo[h] = best_option
+
+        return best_option
+
+    def simulate(self, btn):
+        self.pop_handlers()
+        values = self.current_screen.get_values()
+        panels = self.max_panels(
+            Vec2(), Vec2(values['x'], values['y']),
+            Vec2(values['a'], values['b'])
         )
-        pixel_size = int(roof_width / x)
-
-        roof_x = self.width // 2 - roof_width // 2
-        roof_y = self.height // 2 - roof_height // 2
-        roof = Roof(
-            roof_x, roof_y, roof_width, roof_height, Vec2(x, y),
-            batch=self.batch, group=self.back_group
+        sim_screen = SimulationScreen(
+            self.width, self.height, values['x'], values['y'], panels
         )
-        self.current_screen.widgets.append(roof)
-        return roof, pixel_size
-
-    def create_panels(
-        self, roof: Roof, panels: list[tuple[Vec2, Vec2]], pixel_size: float
-    ):
-        for panel_pos, panel_dims in panels:
-            x = panel_pos.x * pixel_size
-            y =panel_pos.y * pixel_size
-            panel_width = int(panel_dims.x * pixel_size)
-            panel_height = int(panel_dims.y * pixel_size)
-            new_panel = Panel(
-                x, y, panel_width, panel_height,
-                roof, panel_dims, group=self.front_group
-            )
-            roof.children.append(new_panel)
+        self.set_screen(sim_screen)

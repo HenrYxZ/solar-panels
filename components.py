@@ -1,5 +1,9 @@
-from pudu_ui import Frame, FrameParams, Label, LabelParams, WidgetGroup
+from pudu_ui import (
+    Frame, FrameParams, Label, LabelParams, Slider, SliderParams,
+    Widget, WidgetGroup
+)
 import pudu_ui
+from pyglet.event import EVENT_HANDLE_STATE
 from pyglet.graphics import Batch, Group
 from pyglet.math import Vec2
 
@@ -78,3 +82,55 @@ class Panel(Frame):
 
     def show_dims(self):
         self.debug_group.visible = True
+
+
+class Setting(Widget):
+    def __init__(
+        self, label_str: str,
+        value: float, min_value: float, max_value: float, batch: Batch
+    ):
+        super().__init__()
+        label_params = LabelParams(
+            x=20, text=label_str
+        )
+        self.label = Label(label_params, batch=batch, parent=self)
+
+        value_label_params = LabelParams(x=300, text=f"{value}")
+        self.value_label = Label(value_label_params, batch=batch, parent=self)
+
+        slider_params = SliderParams(
+            x=100, min_value=min_value, max_value=max_value, value=value,
+            on_value_changed=self.on_value_changed
+        )
+        self.slider = Slider(slider_params, batch=batch, parent=self)
+
+        self.children.append(self.label)
+        self.children.append(self.slider)
+        self.children.append(self.value_label)
+
+    @property
+    def value(self) -> float:
+        return self.slider.value
+
+    # def recompute(self):
+    #     super().recompute()
+    #     self.label.invalidate()
+    #     self.slider.invalidate()
+    #     self.value_label.invalidate()
+
+    def on_value_changed(self, slider: Slider):
+        self.value_label.text = f"{int(slider.value)}"
+        self.value_label.invalidate()
+        self.invalidate()
+
+    def on_mouse_press(self, *args) -> EVENT_HANDLE_STATE:
+        return self.slider.on_mouse_press(*args)
+
+    def on_mouse_release(self, *args) -> EVENT_HANDLE_STATE:
+        return self.slider.on_mouse_release(*args)
+
+    def on_mouse_motion(self, *args) -> EVENT_HANDLE_STATE:
+        return self.slider.on_mouse_motion(*args)
+
+    def on_mouse_drag(self, *args) -> EVENT_HANDLE_STATE:
+        return self.slider.on_mouse_drag(*args)

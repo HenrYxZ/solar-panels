@@ -112,12 +112,6 @@ class Setting(Widget):
     def value(self) -> float:
         return self.slider.value
 
-    # def recompute(self):
-    #     super().recompute()
-    #     self.label.invalidate()
-    #     self.slider.invalidate()
-    #     self.value_label.invalidate()
-
     def on_value_changed(self, slider: Slider):
         self.value_label.text = f"{int(slider.value)}"
         self.value_label.invalidate()
@@ -128,9 +122,6 @@ class Setting(Widget):
 
     def on_mouse_release(self, *args) -> EVENT_HANDLE_STATE:
         return self.slider.on_mouse_release(*args)
-
-    def on_mouse_motion(self, *args) -> EVENT_HANDLE_STATE:
-        return self.slider.on_mouse_motion(*args)
 
     def on_mouse_drag(self, *args) -> EVENT_HANDLE_STATE:
         return self.slider.on_mouse_drag(*args)

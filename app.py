@@ -27,7 +27,7 @@ class PanelsApp(App):
         a, b = panel_dims.x, panel_dims.y
         if not dims.x or not dims.y:
             return []
-        # print(pos, dims)
+
         h = self.hash_rect(dims)
         if h in self.memo:
             answer = []

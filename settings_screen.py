@@ -22,17 +22,17 @@ class SettingsScreen(Screen):
             "y:", 3,1, 100, batch=self.batch
         )
         self.set_a = Setting(
-            "a:", 1, 1, 100, batch=self.batch
+            "a:", 1, 1, 10, batch=self.batch
         )
         self.set_b = Setting(
-            "b:", 2, 1, 100, batch=self.batch
+            "b:", 2, 1, 10, batch=self.batch
         )
 
         params = ButtonParams(text="Simulate")
         self.button = Button(params, batch=self.batch)
 
         params = ListLayoutParams(
-            x=200, y=100, width=500, height=550,
+            x=200, y=100, width=400, height=550,
             inter_item_spacing=10,
             direction=ListDirection.VERTICAL
         )
@@ -48,8 +48,12 @@ class SettingsScreen(Screen):
         self.set_a.set_debug_mode()
 
         self.widgets.append(self.title)
-        self.widgets.append(self.set_x)
         self.widgets.append(self.list_layout)
+        self.widgets.append(self.set_x)
+        self.widgets.append(self.set_y)
+        self.widgets.append(self.set_a)
+        self.widgets.append(self.set_b)
+
 
     def draw(self):
         glClearColor(1.0, 1.0, 1.0, 1.0)
@@ -57,9 +61,9 @@ class SettingsScreen(Screen):
 
     def get_values(self):
         values = {
-            'x': self.set_x.value,
-            'y': self.set_y.value,
-            'a': self.set_a.value,
-            'b': self.set_b.value
+            'x': int(self.set_x.value),
+            'y': int(self.set_y.value),
+            'a': int(self.set_a.value),
+            'b': int(self.set_b.value)
         }
         return values
